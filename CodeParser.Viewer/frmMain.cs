@@ -42,8 +42,7 @@ namespace CodeParser.Viewer
         private void InitControls()
         {
             this.LoadParsers();
-
-            this.cboParser.SelectedIndex = -1;
+            // this.cboParser.SelectedIndex = -1;
         }
 
         private bool IsSqlParser()
@@ -77,6 +76,14 @@ namespace CodeParser.Viewer
             this.cboParser.DataSource = this.parserTypes;
             this.cboParser.DisplayMember = "Name";
             this.cboParser.ValueMember = "Name";
+            for (int i = 0; i < parserTypes.Count; i++)
+            {
+                if (parserTypes[i].Name.Contains("TSql"))
+                {
+                    this.cboParser.SelectedIndex = i;
+                    break;
+                }
+            }
         }
 
         private Type GetLexerType(string name)
@@ -222,6 +229,7 @@ namespace CodeParser.Viewer
             rootNode.Expand();
 
             rootNode.EnsureVisible();
+
         }
 
         private void AddChildNodes(TreeNode node, bool expand)
@@ -333,7 +341,15 @@ namespace CodeParser.Viewer
                                     }
 
                                     string childName = tn.GetType().Name;
-
+                                    if (tn is TerminalNodeImpl)
+                                    {
+                                        childName = $"{tn.GetText()}";
+                                    }
+                                    else
+                                    {
+                                        childName=  childName.Replace("Context","");
+                                    }
+                                    
                                     TreeNode childNode = this.CreateTreeNode($"{childName}");
                                     childNode.Name = childName;
                                     childNode.Tag = tn;
