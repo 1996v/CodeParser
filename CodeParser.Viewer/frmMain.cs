@@ -366,7 +366,7 @@ namespace CodeParser.Viewer
                                         .FirstOrDefault();
                                     childName = $"{tn.GetText()}";
                                     if (methodInfo != null)
-                                        childName = methodInfo.Name + $"\"{childName}\"";
+                                        childName = methodInfo.Name + $":\"{childName}\"";
                                 }
                                 else
                                 {
