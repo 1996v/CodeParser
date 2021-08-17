@@ -49,17 +49,18 @@ namespace CodeParser.Viewer
         {
             string parserName = this.cboParser.Text;
 
-            if(!string.IsNullOrEmpty(parserName))
-            {               
-                if(parserName == nameof(MySqlParser) ||
-                   parserName == nameof(TSqlParser) ||
-                   parserName == nameof(PlSqlParser) ||
-                   parserName == nameof(SQLiteParser)
-                  )
+            if (!string.IsNullOrEmpty(parserName))
+            {
+                if (parserName == nameof(MySqlParser) ||
+                    parserName == nameof(TSqlParser) ||
+                    parserName == nameof(PlSqlParser) ||
+                    parserName == nameof(SQLiteParser)
+                )
                 {
                     return true;
                 }
             }
+
             return false;
         }
 
@@ -69,9 +70,9 @@ namespace CodeParser.Viewer
             var typeArray = this.assembly.ExportedTypes;
 
             this.parserTypes = (from type in typeArray
-                                where type.IsSubclassOf(typeof(Parser)) && !type.IsAbstract
-                                orderby type.Name
-                                select type).ToList();
+                where type.IsSubclassOf(typeof(Parser)) && !type.IsAbstract
+                orderby type.Name
+                select type).ToList();
 
             this.cboParser.DataSource = this.parserTypes;
             this.cboParser.DisplayMember = "Name";
@@ -89,14 +90,14 @@ namespace CodeParser.Viewer
         private Type GetLexerType(string name)
         {
             return (from type in this.assembly.ExportedTypes
-                    where type.IsSubclassOf(typeof(Lexer)) && type.Name == name
-                    orderby type.Name
-                    select type).FirstOrDefault();
+                where type.IsSubclassOf(typeof(Lexer)) && type.Name == name
+                orderby type.Name
+                select type).FirstOrDefault();
         }
 
         private void LoadFromFile()
         {
-            string content= this.GetFileContent();
+            string content = this.GetFileContent();
             this.txtText.Text = this.IsSqlParser() ? content.ToUpper() : content;
             this.LoadTree();
         }
@@ -202,11 +203,12 @@ namespace CodeParser.Viewer
 
             Type lexerType = this.GetLexerType(parserType.Name.Replace("Parser", "Lexer"));
 
-            Lexer lexer = (Lexer)Activator.CreateInstance(lexerType, new object[] { CharStreams.fromstring(this.txtText.Text) });
+            Lexer lexer =
+                (Lexer) Activator.CreateInstance(lexerType, new object[] {CharStreams.fromstring(this.txtText.Text)});
 
             CommonTokenStream tokens = new CommonTokenStream(lexer);
 
-            this.parser = (Parser)Activator.CreateInstance(parserType, new object[] { tokens });
+            this.parser = (Parser) Activator.CreateInstance(parserType, new object[] {tokens});
 
             ParserInfo info = this.GetParserInfo();
 
@@ -229,7 +231,6 @@ namespace CodeParser.Viewer
             rootNode.Expand();
 
             rootNode.EnsureVisible();
-
         }
 
         private void AddChildNodes(TreeNode node, bool expand)
@@ -271,47 +272,64 @@ namespace CodeParser.Viewer
 
                 if (this.rbMethods.Checked)
                 {
-                    #region Methods                 
+                    #region Methods
 
-                    MethodInfo[] methods = t.GetMethods();
+                    MethodInfo[] methods = t.GetMethods().Where(m =>
+                        m.IsPublic && !m.IsSpecialName && !ignoreMethods.Contains(m.Name) &&
+                        m.Module.Name == this.coderPaserDllName && m.GetParameters().Length == 0).ToArray();
+                    // List<MethodInfo> method2 = new List<MethodInfo>();
+                    //
+                    // var childrenField = type.GetField("children");
+                    // if (childrenField != null)
+                    // {
+                    //     var children = childrenField.GetValue(value);
+                    //     if (children != null && children is List<IParseTree> treeNodes)
+                    //     {
+                    //         foreach (IParseTree tn in treeNodes)
+                    //         {
+                    //             method2.Add(methods.Where(e => e.Invoke(v, new object[] { }) == tn).First());
+                    //         }
+                    //     }
+                    // }
 
                     foreach (MethodInfo m in methods)
                     {
-                        if (m.IsPublic && !m.IsSpecialName && !ignoreMethods.Contains(m.Name) && m.Module.Name == this.coderPaserDllName && m.GetParameters().Length == 0)
-                        {
-                            var childValue = m.Invoke(v, new object[] { });
+                        var childValue = m.Invoke(v, new object[] { });
 
-                            if (childValue == null && hideEmptyNode)
+                        if (childValue == null && hideEmptyNode)
+                        {
+                            continue;
+                        }
+
+                        bool isArray = m.ReturnType.IsArray;
+                        int count = 0;
+
+                        if (isArray && childValue is IEnumerable<IParseTree> treeNodes)
+                        {
+                            count = treeNodes.Count();
+
+                            if (count == 0 && hideEmptyNode)
                             {
                                 continue;
                             }
-
-                            bool isArray = m.ReturnType.IsArray;
-                            int count = 0;
-
-                            if (isArray && childValue is IEnumerable<IParseTree> treeNodes)
-                            {
-                                count = treeNodes.Count();
-
-                                if (count == 0 && hideEmptyNode)
-                                {
-                                    continue;
-                                }
-                            }
-
-                            string nodeText = isArray ? (m.Name + "[]") : m.Name;
-
-                            TreeNode childNode = this.CreateTreeNode(nodeText);
-                            childNode.Name = m.Name;
-
-                            childNode.Tag = childValue;
-
-                            node.Nodes.Add(childNode);
-
-                            this.dictTokenInfo.Add(childNode, this.GetTokenInfo(childValue));
-
-                            this.AddChildNodes(childNode, false);
                         }
+
+                        string nodeText = isArray ? (m.Name + "[]") : m.Name;
+                        if (childValue is TerminalNodeImpl tn)
+                        {
+                            nodeText += ":\"" + tn.GetText() + "\"";
+                        }
+
+                        TreeNode childNode = this.CreateTreeNode(nodeText);
+                        childNode.Name = m.Name;
+
+                        childNode.Tag = childValue;
+
+                        node.Nodes.Add(childNode);
+
+                        this.dictTokenInfo.Add(childNode, this.GetTokenInfo(childValue));
+
+                        this.AddChildNodes(childNode, false);
                     }
 
                     #endregion
@@ -319,7 +337,7 @@ namespace CodeParser.Viewer
 
                 if (this.rbChildren.Checked)
                 {
-                    #region Children          
+                    #region Children
 
                     var childrenField = type.GetField("children");
 
@@ -327,46 +345,50 @@ namespace CodeParser.Viewer
                     {
                         var children = childrenField.GetValue(value);
 
-                        if (children != null)
+                        if (children != null && children is List<IParseTree> treeNodes)
                         {
-                            if (children is List<IParseTree> treeNodes)
+                            MethodInfo[] methods = t.GetMethods().Where(m =>
+                                m.IsPublic && !m.IsSpecialName && !ignoreMethods.Contains(m.Name) &&
+                                m.Module.Name == this.coderPaserDllName && m.GetParameters().Length == 0).ToArray();
+                            int i = 0;
+
+                            foreach (IParseTree tn in treeNodes)
                             {
-                                int i = 0;
-
-                                foreach (IParseTree tn in treeNodes)
+                                if (tn is TerminalNodeImpl && tn.GetText() == "<EOF>" && this.chkHideEmptyNode.Checked)
                                 {
-                                    if (tn is TerminalNodeImpl && tn.GetText() == "<EOF>" && this.chkHideEmptyNode.Checked)
-                                    {
-                                        continue;
-                                    }
-
-                                    string childName = tn.GetType().Name;
-                                    if (tn is TerminalNodeImpl)
-                                    {
-                                        childName = $"{tn.GetText()}";
-                                    }
-                                    else
-                                    {
-                                        childName=  childName.Replace("Context","");
-                                    }
-                                    
-                                    TreeNode childNode = this.CreateTreeNode($"{childName}");
-                                    childNode.Name = childName;
-                                    childNode.Tag = tn;
-
-                                    if(tn is ErrorNodeImpl)
-                                    {
-                                        childNode.ForeColor = Color.Red;
-                                    }
-
-                                    node.Nodes.Add(childNode);
-
-                                    this.dictTokenInfo.Add(childNode, this.GetTokenInfo(tn));
-
-                                    this.AddChildNodes(childNode, false);
-
-                                    i++;
+                                    continue;
                                 }
+
+                                string childName = tn.GetType().Name;
+                                if (tn is TerminalNodeImpl)
+                                {
+                                    var methodInfo = methods.Where(e => e.Invoke(v, new object[] { }) == tn)
+                                        .FirstOrDefault();
+                                    childName = $"{tn.GetText()}";
+                                    if (methodInfo != null)
+                                        childName = methodInfo.Name + $"\"{childName}\"";
+                                }
+                                else
+                                {
+                                    childName = childName.Replace("Context", "");
+                                }
+
+                                TreeNode childNode = this.CreateTreeNode($"{childName}");
+                                childNode.Name = childName;
+                                childNode.Tag = tn;
+
+                                if (tn is ErrorNodeImpl)
+                                {
+                                    childNode.ForeColor = Color.Red;
+                                }
+
+                                node.Nodes.Add(childNode);
+
+                                this.dictTokenInfo.Add(childNode, this.GetTokenInfo(tn));
+
+                                this.AddChildNodes(childNode, false);
+
+                                i++;
                             }
                         }
                     }
@@ -432,7 +454,8 @@ namespace CodeParser.Viewer
 
         private void ShowNodeDetails(TreeNode node)
         {
-            if (this.tvParserNodes.SelectedNode != null && this.tvParserNodes.SelectedNode.Level == 0 && this.tvParserNodes.Nodes.Count == 1)
+            if (this.tvParserNodes.SelectedNode != null && this.tvParserNodes.SelectedNode.Level == 0 &&
+                this.tvParserNodes.Nodes.Count == 1)
             {
                 return;
             }
@@ -454,7 +477,8 @@ namespace CodeParser.Viewer
 
             this.txtChildCount.Text = tokenInfo.ChildCount?.ToString();
 
-            if (!tokenInfo.StartIndex.HasValue || tokenInfo.StartIndex < 0 || !tokenInfo.StopIndex.HasValue || tokenInfo.StopIndex < 0)
+            if (!tokenInfo.StartIndex.HasValue || tokenInfo.StartIndex < 0 || !tokenInfo.StopIndex.HasValue ||
+                tokenInfo.StopIndex < 0)
             {
                 return;
             }
@@ -550,7 +574,7 @@ namespace CodeParser.Viewer
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
-                string[] filePaths = (string[])e.Data.GetData(DataFormats.FileDrop.ToString());
+                string[] filePaths = (string[]) e.Data.GetData(DataFormats.FileDrop.ToString());
 
                 string filePath = filePaths.FirstOrDefault();
 
@@ -570,6 +594,8 @@ namespace CodeParser.Viewer
 
         private void rbMethods_CheckedChanged(object sender, EventArgs e)
         {
+            if (this.rbMethods.Checked)
+                MessageBox.Show("Methods选项显示的树节点顺序不准确");
             this.LoadTree();
         }
 
@@ -696,7 +722,7 @@ namespace CodeParser.Viewer
         private void txtFile_MouseDoubleClick(object sender, MouseEventArgs e)
         {
             this.SelectFile();
-        }       
+        }
 
         private void tsmiPaste_Click(object sender, EventArgs e)
         {
@@ -723,7 +749,8 @@ namespace CodeParser.Viewer
         {
             if (this.txtText.SelectionLength > 0)
             {
-                int start = this.txtText.SelectionStart + (this.txtText.SelectedText.Length - this.txtText.SelectedText.TrimStart().Length);
+                int start = this.txtText.SelectionStart +
+                            (this.txtText.SelectedText.Length - this.txtText.SelectedText.TrimStart().Length);
                 int length = this.txtText.SelectedText.Trim().Replace("\n", "").Length;
 
                 TreeNode node = this.FindTreeNode(start, length);
@@ -746,10 +773,12 @@ namespace CodeParser.Viewer
             int end = start + lenght - 1;
 
             TreeNode node = this.dictTokenInfo
-                    .Where(item => item.Value.StartIndex.HasValue && item.Value.StopIndex.HasValue && start >= item.Value.StartIndex && end <= item.Value.StopIndex)
-                    .OrderByDescending(item => item.Key.Level)
-                    .Select(item => item.Key)
-                    .FirstOrDefault();
+                .Where(item =>
+                    item.Value.StartIndex.HasValue && item.Value.StopIndex.HasValue && start >= item.Value.StartIndex &&
+                    end <= item.Value.StopIndex)
+                .OrderByDescending(item => item.Key.Level)
+                .Select(item => item.Key)
+                .FirstOrDefault();
 
             return node;
         }
@@ -775,7 +804,8 @@ namespace CodeParser.Viewer
             {
                 //this.tsmiClearSelection.Visible = this.txtText.SelectionLength > 0;
                 this.tsmiNavigateToTreeNode.Visible = this.txtText.SelectionLength > 0;
-                this.tsmiPaste.Visible = this.txtText.Text.Length == 0 || this.txtText.SelectionLength == this.txtText.Text.Length;
+                this.tsmiPaste.Visible = this.txtText.Text.Length == 0 ||
+                                         this.txtText.SelectionLength == this.txtText.Text.Length;
 
                 this.textContextMenu.Show(this.txtText, e.Location);
             }
@@ -794,7 +824,8 @@ namespace CodeParser.Viewer
                 {
                     this.txtFile.Text = "";
 
-                    if (this.IsSqlParser() && (this.txtText.Text.Length ==0 || this.txtText.SelectedText.Length == this.txtText.Text.Length))
+                    if (this.IsSqlParser() && (this.txtText.Text.Length == 0 ||
+                                               this.txtText.SelectedText.Length == this.txtText.Text.Length))
                     {
                         e.SuppressKeyPress = true;
 
@@ -802,8 +833,8 @@ namespace CodeParser.Viewer
 
                         string content = Clipboard.GetText();
 
-                        this.txtText.AppendText(content.ToUpper());                       
-                    }               
+                        this.txtText.AppendText(content.ToUpper());
+                    }
 
                     this.LoadTree();
                 }
