@@ -1,4 +1,6 @@
-﻿namespace CodeParser.Viewer
+﻿using System.Drawing;
+
+namespace CodeParser.Viewer
 {
     partial class frmMain
     {
@@ -107,6 +109,7 @@
             this.tvParserNodes.NodeMouseClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.tvParserNodes_NodeMouseClick);
             this.tvParserNodes.NodeMouseDoubleClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.tvParserNodes_NodeMouseDoubleClick);
             this.tvParserNodes.MouseClick += new System.Windows.Forms.MouseEventHandler(this.tvParserNodes_MouseClick);
+            this.tvParserNodes.Font = new Font("宋体", 12, FontStyle.Regular);
             // 
             // txtText
             // 

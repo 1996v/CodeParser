@@ -376,6 +376,13 @@ namespace CodeParser.Viewer
                                 TreeNode childNode = this.CreateTreeNode($"{childName}");
                                 childNode.Name = childName;
                                 childNode.Tag = tn;
+                                
+
+                                if (tn is TerminalNodeImpl)
+                                {
+                                    childNode.ForeColor=Color.Blue;
+                                }
+                           
 
                                 if (tn is ErrorNodeImpl)
                                 {
