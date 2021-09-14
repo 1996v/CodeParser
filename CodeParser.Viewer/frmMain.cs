@@ -18,7 +18,6 @@ namespace CodeParser.Viewer
     public partial class frmMain : Form
     {
         private string coderPaserDllName = "CodeParser.dll";
-        private Assembly assembly = null;
         private List<Type> parserTypes = new List<Type>();
         private Parser parser = null;
         private Color selectionBackColor = ColorTranslator.FromHtml("#0078D7");
@@ -51,10 +50,10 @@ namespace CodeParser.Viewer
 
             if (!string.IsNullOrEmpty(parserName))
             {
-                if (parserName == nameof(MySqlParser) ||
-                    parserName == nameof(TSqlParser) ||
-                    parserName == nameof(PlSqlParser) ||
-                    parserName == nameof(SQLiteParser)
+                if (parserName == nameof(TSqlParser) 
+                    // parserName == nameof(TSqlParser)
+                    // parserName == nameof(PlSqlParser) ||
+                    // parserName == nameof(SQLiteParser)
                 )
                 {
                     return true;
@@ -66,13 +65,7 @@ namespace CodeParser.Viewer
 
         private void LoadParsers()
         {
-            this.assembly = Assembly.LoadFrom(this.coderPaserDllName);
-            var typeArray = this.assembly.ExportedTypes;
-
-            this.parserTypes = (from type in typeArray
-                where type.IsSubclassOf(typeof(Parser)) && !type.IsAbstract
-                orderby type.Name
-                select type).ToList();
+            this.parserTypes =new List<Type>(){typeof(TSqlParser)};
 
             this.cboParser.DataSource = this.parserTypes;
             this.cboParser.DisplayMember = "Name";
@@ -89,10 +82,7 @@ namespace CodeParser.Viewer
 
         private Type GetLexerType(string name)
         {
-            return (from type in this.assembly.ExportedTypes
-                where type.IsSubclassOf(typeof(Lexer)) && type.Name == name
-                orderby type.Name
-                select type).FirstOrDefault();
+            return typeof(TSqlLexer);
         }
 
         private void LoadFromFile()
@@ -204,7 +194,7 @@ namespace CodeParser.Viewer
             Type lexerType = this.GetLexerType(parserType.Name.Replace("Parser", "Lexer"));
 
             Lexer lexer =
-                (Lexer) Activator.CreateInstance(lexerType, new object[] {CharStreams.fromstring(this.txtText.Text)});
+                (Lexer) Activator.CreateInstance(lexerType, new object[] {CharStreams.fromString(this.txtText.Text)});
 
             CommonTokenStream tokens = new CommonTokenStream(lexer);
 

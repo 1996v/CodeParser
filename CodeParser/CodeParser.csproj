@@ -18,6 +18,9 @@
     <None Remove="JavaClass\**" />
     <None Remove="MySql0\**" />
     <None Remove="MySql2\**" />
+    <Compile Remove="Parser\**" />
+    <EmbeddedResource Remove="Parser\**" />
+    <None Remove="Parser\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -28,8 +31,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Antlr4.Runtime.Standard" Version="4.8.0" />
     <PackageReference Include="System.ValueTuple" Version="4.5.0" />
+    <PackageReference Include="TSqlG4Parser" Version="1.0.5" />
   </ItemGroup>
 
 </Project>
