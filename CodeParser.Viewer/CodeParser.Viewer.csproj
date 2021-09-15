@@ -52,7 +52,7 @@
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="TSqlG4Parser, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\packages\TSqlG4Parser.1.0.7\lib\net461\TSqlG4Parser.dll</HintPath>
+      <HintPath>..\packages\TSqlG4Parser.1.0.8\lib\net461\TSqlG4Parser.dll</HintPath>
       <Private>True</Private>
     </Reference>
   </ItemGroup>
