@@ -32,7 +32,7 @@
 
   <ItemGroup>
     <PackageReference Include="System.ValueTuple" Version="4.5.0" />
-    <PackageReference Include="TSqlG4Parser" Version="1.0.8" />
+    <PackageReference Include="TSqlG4Parser" Version="1.0.9" />
   </ItemGroup>
 
 </Project>
